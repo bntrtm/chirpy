@@ -1,3 +1,6 @@
 ./buildrun
 /.bak
+/assets
 out
+goto
+index.html
