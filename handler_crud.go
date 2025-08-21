@@ -28,9 +28,6 @@ func(cfg *apiConfig) endpCreateUser(w http.ResponseWriter, r *http.Request){
 		Email:     dbUser.Email,
 	}
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(201)
-
 	respondWithJSON(w, 201, respBody)
 	return
 }
