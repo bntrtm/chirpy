@@ -39,8 +39,8 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", endpReadiness)
 	mux.HandleFunc("GET /admin/metrics", config.endpFileserverHitCountGet)
 	mux.HandleFunc("POST /admin/reset", config.endpDeleteAllUsers)
-	mux.HandleFunc("POST /api/validate_chirp", endpValidateChirp)
 	mux.HandleFunc("POST /api/users", config.endpCreateUser)
+	mux.HandleFunc("POST /api/chirps", config.endpCreateChirp)
 
 	server := &http.Server{
 		Addr:		":" + port,
