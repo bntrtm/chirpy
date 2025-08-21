@@ -1,6 +1,11 @@
 ./buildrun
 /.bak
 /assets
+/sql
+chirpy
+migdown
+migup
 out
 goto
 index.html
+.env
