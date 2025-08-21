@@ -32,6 +32,49 @@ func(cfg *apiConfig) endpFileserverHitCountReset(w http.ResponseWriter, r *http.
 	}
 }
 
+func(cfg *apiConfig) endpDeleteAllUsers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	if cfg.platform != "dev" {
+		respondWithText(w, 403, "403 Forbidden")
+	}
+
+	err := cfg.db.DelUsers(r.Context())
+	if err != nil {
+		log.Print(err)
+	}
+
+	respondWithText(w, 200, "Successfully deleted all users.")
+}
+
+func(cfg *apiConfig) endpCreateUser(w http.ResponseWriter, r *http.Request){
+    type parameters struct {
+        Email string `json:"email"`
+    }
+
+    decoder := json.NewDecoder(r.Body)
+    params := parameters{}
+    err := decoder.Decode(&params)
+    if err != nil {
+        log.Printf("Error decoding parameters: %s", err)
+		w.WriteHeader(500)
+		return
+    }
+
+	dbUser, err := cfg.db.CreateUser(r.Context(), params.Email)
+	respBody := User{
+		ID:        dbUser.ID,
+		CreatedAt: dbUser.CreatedAt,
+		UpdatedAt: dbUser.UpdatedAt,
+		Email:     dbUser.Email,
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(201)
+
+	respondWithJSON(w, 201, respBody)
+	return
+}
+
 func endpValidateChirp(w http.ResponseWriter, r *http.Request){
     type parameters struct {
         Body string `json:"body"`

@@ -6,11 +6,14 @@ import (
 	"log"
 	"os"
 	"fmt"
+	"time"
 	"database/sql"
 	"sync/atomic"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	
 	"github.com/bntrtm/chirpy/internal/database"
 )
 
@@ -19,7 +22,8 @@ type apiConfig struct {
 	// safely increment and read an integer value across multiple 
 	// goroutines (HTTP requests)
 	fileserverHits	atomic.Int32
-	database		*database.Queries
+	db				*database.Queries
+	platform		string
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -43,6 +47,13 @@ func middlewareLog(next http.Handler) http.Handler {
 	})
 }
 
+type User struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+}
+
 func main() {
 	const filepathRoot = "."
 	const port = "8080"
@@ -57,7 +68,8 @@ func main() {
 
 	config := apiConfig{}
 	dbQueries := database.New(db)
-	config.database = dbQueries
+	config.db = dbQueries
+	config.platform = os.Getenv("PLATFORM")
 
 	mux := http.NewServeMux()
 	handler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
@@ -66,8 +78,9 @@ func main() {
 	// REGISTER HANDLERS
 	mux.HandleFunc("GET /api/healthz", endpReadiness)
 	mux.HandleFunc("GET /admin/metrics", config.endpFileserverHitCountGet)
-	mux.HandleFunc("POST /admin/reset", config.endpFileserverHitCountReset)
+	mux.HandleFunc("POST /admin/reset", config.endpDeleteAllUsers)
 	mux.HandleFunc("POST /api/validate_chirp", endpValidateChirp)
+	mux.HandleFunc("POST /api/users", config.endpCreateUser)
 
 	server := &http.Server{
 		Addr:		":" + port,
