@@ -13,6 +13,32 @@ import (
 	"github.com/bntrtm/chirpy/internal/database"
 )
 
+func(cfg *apiConfig) endpGetChirpByID(w http.ResponseWriter, r *http.Request) {
+	idString := r.PathValue("chirpID")
+	id, err := uuid.Parse(idString)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	dbChirp, err := cfg.db.GetChirpByID(r.Context(), id)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Couldn't get chirp at specified id")
+		return
+	}
+
+
+	respBody := Chirp{
+		ID:			dbChirp.ID,
+		CreatedAt:	dbChirp.CreatedAt,
+		UpdatedAt:	dbChirp.UpdatedAt,
+		Body:     	dbChirp.Body,
+		UserID:		dbChirp.UserID,
+	}
+	
+	respondWithJSON(w, http.StatusOK, respBody)
+	return
+}
+
 func(cfg *apiConfig) endpGetRecentChirps(w http.ResponseWriter, r *http.Request) {
 	chirps, err := cfg.db.GetRecentChirps(r.Context())
 	if err != nil {
