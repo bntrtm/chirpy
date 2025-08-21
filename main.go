@@ -6,53 +6,13 @@ import (
 	"log"
 	"os"
 	"fmt"
-	"time"
 	"database/sql"
-	"sync/atomic"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	
 	"github.com/bntrtm/chirpy/internal/database"
 )
-
-type apiConfig struct {
-	// atomic.Int32 is a //standard-library type that allows us to 
-	// safely increment and read an integer value across multiple 
-	// goroutines (HTTP requests)
-	fileserverHits	atomic.Int32
-	db				*database.Queries
-	platform		string
-}
-
-func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileserverHits.Add(1)
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (cfg *apiConfig) middlewareMetricsReset(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileserverHits.Store(0)
-		next.ServeHTTP(w, r)
-	})
-}
-
-func middlewareLog(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s %s", r.Method, r.URL.Path)
-		next.ServeHTTP(w, r)
-	})
-}
-
-type User struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
-}
 
 func main() {
 	const filepathRoot = "."
