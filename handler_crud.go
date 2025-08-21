@@ -13,6 +13,29 @@ import (
 	"github.com/bntrtm/chirpy/internal/database"
 )
 
+func(cfg *apiConfig) endpGetRecentChirps(w http.ResponseWriter, r *http.Request) {
+	chirps, err := cfg.db.GetRecentChirps(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get recent chirps")
+		return
+	}
+
+	var respBody []Chirp
+	for _, chirp := range chirps {
+		addChirp := Chirp{
+			ID:			chirp.ID,
+			CreatedAt:	chirp.CreatedAt,
+			UpdatedAt:	chirp.UpdatedAt,
+			Body:     	chirp.Body,
+			UserID:		chirp.UserID,
+		}
+		respBody = append(respBody, addChirp)
+	}
+	
+	respondWithJSON(w, http.StatusOK, respBody)
+	return
+}
+
 func(cfg *apiConfig) endpCreateChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body   string    `json:"body"`
