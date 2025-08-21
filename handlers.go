@@ -10,16 +10,10 @@ import (
 )
 
 func endpReadiness(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write([]byte("OK")); err != nil {
-		log.Print(err)
-	}
+	respondWithText(w, http.StatusOK, "OK")
 }
 
 func(cfg *apiConfig) endpFileserverHitCountGet(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
 	output := fmt.Sprintf(`<html>
   <body>
     <h1>Welcome, Chirpy Admin</h1>
@@ -27,9 +21,7 @@ func(cfg *apiConfig) endpFileserverHitCountGet(w http.ResponseWriter, r *http.Re
   </body>
 </html>`, cfg.fileserverHits.Load())
 
-	if _, err := w.Write([]byte(output)); err != nil {
-		log.Print(err)
-	}
+	respondWithHTML(w, http.StatusOK, output)
 }
 
 func(cfg *apiConfig) endpFileserverHitCountReset(w http.ResponseWriter, r *http.Request) {
@@ -99,6 +91,24 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(dat)
+	return
+}
+
+func respondWithHTML(w http.ResponseWriter, code int, msg string) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(code)
+	if _, err := w.Write([]byte(msg)); err != nil {
+		log.Print(err)
+	}
+	return
+}
+
+func respondWithText(w http.ResponseWriter, code int, msg string) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(code)
+	if _, err := w.Write([]byte(msg)); err != nil {
+		log.Print(err)
+	}
 	return
 }
 
