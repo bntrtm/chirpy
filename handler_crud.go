@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/bntrtm/chirpy/internal/database"
+	"github.com/bntrtm/chirpy/internal/auth"
 )
 
 func(cfg *apiConfig) endpGetChirpByID(w http.ResponseWriter, r *http.Request) {
@@ -137,7 +138,8 @@ func cleanChirpBody(body, censor string, profanities []string) string {
 
 func(cfg *apiConfig) endpCreateUser(w http.ResponseWriter, r *http.Request){
     type parameters struct {
-        Email string `json:"email"`
+		Password	string `json:"password"`
+        Email		string `json:"email"`
     }
 
     decoder := json.NewDecoder(r.Body)
@@ -149,16 +151,26 @@ func(cfg *apiConfig) endpCreateUser(w http.ResponseWriter, r *http.Request){
 		return
     }
 
-	dbUser, err := cfg.db.CreateUser(r.Context(), params.Email)
+	hashedPass, err := auth.HashPassword(params.Password)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
+		respondWithError(w, http.StatusInternalServerError, "Failure processing request to create user", err)
+		return
+	}
+
+	dbUser, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
+		Email:			params.Email,
+		HashedPassword:	hashedPass,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failure processing request to create user", err)
 		return
 	}
 	respBody := User{
-		ID:        dbUser.ID,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
-		Email:     dbUser.Email,
+		ID:        		dbUser.ID,
+		CreatedAt: 		dbUser.CreatedAt,
+		UpdatedAt: 		dbUser.UpdatedAt,
+		Email:     		dbUser.Email,
+		HashedPassword:	dbUser.HashedPassword,
 	}
 
 	respondWithJSON(w, http.StatusCreated, respBody)
