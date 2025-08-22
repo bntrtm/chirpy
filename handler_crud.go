@@ -17,12 +17,12 @@ func(cfg *apiConfig) endpGetChirpByID(w http.ResponseWriter, r *http.Request) {
 	idString := r.PathValue("chirpID")
 	id, err := uuid.Parse(idString)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid id")
+		respondWithError(w, http.StatusBadRequest, "invalid id", err)
 		return
 	}
 	dbChirp, err := cfg.db.GetChirpByID(r.Context(), id)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, "Couldn't get chirp at specified id")
+		respondWithError(w, http.StatusNotFound, "Couldn't get chirp at specified id", err)
 		return
 	}
 
@@ -42,7 +42,7 @@ func(cfg *apiConfig) endpGetChirpByID(w http.ResponseWriter, r *http.Request) {
 func(cfg *apiConfig) endpGetRecentChirps(w http.ResponseWriter, r *http.Request) {
 	chirps, err := cfg.db.GetRecentChirps(r.Context())
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't get recent chirps")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get recent chirps", err)
 		return
 	}
 
@@ -72,14 +72,13 @@ func(cfg *apiConfig) endpCreateChirp(w http.ResponseWriter, r *http.Request) {
     params := parameters{}
     err := decoder.Decode(&params)
     if err != nil {
-        log.Printf("Error decoding parameters: %s", err)
-		w.WriteHeader(500)
+		respondWithError(w, http.StatusInternalServerError, "Could not post chirp", err)
 		return
     }
 
 	cleaned, err := validateChirp(params.Body)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
@@ -88,7 +87,7 @@ func(cfg *apiConfig) endpCreateChirp(w http.ResponseWriter, r *http.Request) {
 		UserID:	params.UserID,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp", err)
 		return
 	}
 	respBody := Chirp{
@@ -152,7 +151,7 @@ func(cfg *apiConfig) endpCreateUser(w http.ResponseWriter, r *http.Request){
 
 	dbUser, err := cfg.db.CreateUser(r.Context(), params.Email)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create user")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
 		return
 	}
 	respBody := User{
