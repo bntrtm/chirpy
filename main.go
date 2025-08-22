@@ -30,6 +30,7 @@ func main() {
 	dbQueries := database.New(db)
 	config.db = dbQueries
 	config.platform = os.Getenv("PLATFORM")
+	config.secret = os.Getenv("SECRET")
 
 	mux := http.NewServeMux()
 	handler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))

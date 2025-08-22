@@ -65,8 +65,7 @@ func(cfg *apiConfig) endpGetRecentChirps(w http.ResponseWriter, r *http.Request)
 
 func(cfg *apiConfig) endpCreateChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Body   string    `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -77,6 +76,17 @@ func(cfg *apiConfig) endpCreateChirp(w http.ResponseWriter, r *http.Request) {
 		return
     }
 
+	tokenString, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "No token found to validate", err)
+		return
+	}
+	validatedUserID, err := auth.ValidateJWT(tokenString, cfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "401 Unauthorized", err)
+		return
+	}
+
 	cleaned, err := validateChirp(params.Body)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error(), err)
@@ -85,7 +95,7 @@ func(cfg *apiConfig) endpCreateChirp(w http.ResponseWriter, r *http.Request) {
 
 	dbChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:	cleaned,
-		UserID:	params.UserID,
+		UserID:	validatedUserID,
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp", err)
@@ -138,8 +148,9 @@ func cleanChirpBody(body, censor string, profanities []string) string {
 
 func(cfg *apiConfig) endpCreateUser(w http.ResponseWriter, r *http.Request){
     type parameters struct {
-		Password	string `json:"password"`
-        Email		string `json:"email"`
+		Password	string	`json:"password"`
+        Email		string	`json:"email"`
+		Token		string	`json:"token"`
     }
 
     decoder := json.NewDecoder(r.Body)

@@ -4,6 +4,8 @@ import (
 	"time"
 	"log"
 	"errors"
+	"strings"
+	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -60,4 +62,21 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	} else {
 		return uuid.Nil, errors.New("unknown claims type, cannot proceed")
 	}
+}
+
+
+func GetBearerToken(headers http.Header) (tokenString string, returnErr error) {
+	authSlice, ok := headers["Authorization"]
+	if !ok || len(authSlice) == 0 {
+		return "", errors.New("Authorization header missing or empty")
+	}
+	authHeaderVal := authSlice[0]
+	if !strings.HasPrefix(strings.ToLower(authHeaderVal), "bearer ") {
+		return "", errors.New("No token string found")
+	}
+	tokenElements := strings.SplitN(authHeaderVal, " ", 2)
+	if len(tokenElements) != 2 || strings.TrimSpace(tokenElements[1]) == "" {
+		return "", errors.New("Bearer presented without token")
+	}
+	return tokenElements[1], nil
 }
