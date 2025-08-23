@@ -63,6 +63,38 @@ func(cfg *apiConfig) endpGetRecentChirps(w http.ResponseWriter, r *http.Request)
 	return
 }
 
+func(cfg *apiConfig) endpDeleteChirp(w http.ResponseWriter, r *http.Request) {
+	idString := r.PathValue("chirpID")
+	id, err := uuid.Parse(idString)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid id", err)
+		return
+	}
+	tokenString, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "No token found to validate", err)
+		return
+	}
+	dbChirp, err := cfg.db.GetChirpByID(r.Context(), id)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Couldn't get chirp at specified id", err)
+		return
+	}
+	validatedUserID, err := auth.ValidateJWT(tokenString, cfg.secret)
+	if err != nil || validatedUserID != dbChirp.UserID {
+		respondWithError(w, http.StatusForbidden, "403 Forbidden", nil)
+		return
+	}
+
+	err = cfg.db.DeleteChirpByID(r.Context(), id)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "404 Not Found", err)
+		return
+	}
+	respondWithText(w, http.StatusNoContent, "The chirp was deleted")
+	return
+}
+
 func(cfg *apiConfig) endpCreateChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
