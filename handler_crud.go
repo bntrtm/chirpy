@@ -162,8 +162,8 @@ func(cfg *apiConfig) endpCreateUser(w http.ResponseWriter, r *http.Request){
     }
 
 	if params.Email == "" || params.Password == "" {
-    respondWithError(w, http.StatusBadRequest, "Missing email or password", nil)
-    return
+		respondWithError(w, http.StatusBadRequest, "Missing email or password", nil)
+		return
 	}
 
 	hashedPass, err := auth.HashPassword(params.Password)
@@ -185,10 +185,63 @@ func(cfg *apiConfig) endpCreateUser(w http.ResponseWriter, r *http.Request){
 		CreatedAt: 		dbUser.CreatedAt,
 		UpdatedAt: 		dbUser.UpdatedAt,
 		Email:     		dbUser.Email,
-		HashedPassword:	dbUser.HashedPassword,
 	}
 
 	respondWithJSON(w, http.StatusCreated, respBody)
 	return
 }
 
+func(cfg *apiConfig) endpUpdateUserCredentials(w http.ResponseWriter, r *http.Request){
+    type parameters struct {
+		Password	string	`json:"password"`
+        Email		string	`json:"email"`
+    }
+
+	decoder := json.NewDecoder(r.Body)
+    params := parameters{}
+    err := decoder.Decode(&params)
+    if err != nil {
+        log.Printf("Error decoding parameters: %s", err)
+		w.WriteHeader(500)
+		return
+    }
+
+	if params.Email == "" || params.Password == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing email or password", nil)
+		return
+	}
+
+	hashedPass, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failure processing request to create user", err)
+		return
+	}
+
+	rTokenString, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	dbUserID, err := auth.ValidateJWT(rTokenString, cfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid or missing token", err)
+		return
+	}
+
+	dbUserUpdated, err := cfg.db.UpdateUserCredentials(r.Context(), database.UpdateUserCredentialsParams{
+		ID:					dbUserID,
+		Email:				params.Email,
+		HashedPassword:		hashedPass,
+	})
+
+	respBody := User{
+		ID:        		dbUserUpdated.ID,
+		CreatedAt: 		dbUserUpdated.CreatedAt,
+		UpdatedAt: 		dbUserUpdated.UpdatedAt,
+		Email:     		dbUserUpdated.Email,
+	}
+
+	respondWithJSON(w, http.StatusOK, respBody)
+	return
+}

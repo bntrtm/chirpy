@@ -47,6 +47,7 @@ func main() {
 	mux.HandleFunc("POST /api/login", config.endpLoginUser)
 	mux.HandleFunc("POST /api/refresh", config.endpCheckRefreshToken)
 	mux.HandleFunc("POST /api/revoke", config.endpRevokeRefreshToken)
+	mux.HandleFunc("PUT /api/users", config.endpUpdateUserCredentials)
 
 	server := &http.Server{
 		Addr:		":" + port,
