@@ -74,11 +74,12 @@ func (q *Queries) GetChirpByID(ctx context.Context, id uuid.UUID) (Chirp, error)
 const getRecentChirps = `-- name: GetRecentChirps :many
 SELECT id, created_at, updated_at, body, user_id
 FROM chirps
+WHERE ($1 = '') OR (user_id = $1::uuid)
 ORDER BY created_at ASC
 `
 
-func (q *Queries) GetRecentChirps(ctx context.Context) ([]Chirp, error) {
-	rows, err := q.db.QueryContext(ctx, getRecentChirps)
+func (q *Queries) GetRecentChirps(ctx context.Context, dollar_1 interface{}) ([]Chirp, error) {
+	rows, err := q.db.QueryContext(ctx, getRecentChirps, dollar_1)
 	if err != nil {
 		return nil, err
 	}

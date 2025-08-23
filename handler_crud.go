@@ -41,7 +41,8 @@ func(cfg *apiConfig) endpGetChirpByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func(cfg *apiConfig) endpGetRecentChirps(w http.ResponseWriter, r *http.Request) {
-	chirps, err := cfg.db.GetRecentChirps(r.Context())
+	authorID := r.URL.Query().Get("author_id")
+	chirps, err := cfg.db.GetRecentChirps(r.Context(), authorID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get recent chirps", err)
 		return

@@ -17,6 +17,7 @@ WHERE chirps.id = $1;
 -- name: GetRecentChirps :many
 SELECT *
 FROM chirps
+WHERE ($1 = '') OR (user_id = $1::uuid)
 ORDER BY created_at ASC;
 
 -- name: GetChirpByID :one
