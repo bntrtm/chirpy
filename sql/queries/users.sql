@@ -21,3 +21,8 @@ DELETE FROM users;
 -- name: GetUserByEmail :one
 SELECT * FROM users
 WHERE users.email = $1;
+
+-- name: UpdateUserPlan :exec
+UPDATE users
+SET updated_at = NOW(), is_chirpy_red = $2
+WHERE id = $1;

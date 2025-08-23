@@ -217,6 +217,7 @@ func(cfg *apiConfig) endpCreateUser(w http.ResponseWriter, r *http.Request){
 		CreatedAt: 		dbUser.CreatedAt,
 		UpdatedAt: 		dbUser.UpdatedAt,
 		Email:     		dbUser.Email,
+		IsChirpyRed:	dbUser.IsChirpyRed,
 	}
 
 	respondWithJSON(w, http.StatusCreated, respBody)
@@ -272,6 +273,7 @@ func(cfg *apiConfig) endpUpdateUserCredentials(w http.ResponseWriter, r *http.Re
 		CreatedAt: 		dbUserUpdated.CreatedAt,
 		UpdatedAt: 		dbUserUpdated.UpdatedAt,
 		Email:     		dbUserUpdated.Email,
+		IsChirpyRed:	dbUserUpdated.IsChirpyRed,
 	}
 
 	respondWithJSON(w, http.StatusOK, respBody)

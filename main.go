@@ -49,6 +49,7 @@ func main() {
 	mux.HandleFunc("POST /api/revoke", config.endpRevokeRefreshToken)
 	mux.HandleFunc("PUT /api/users", config.endpUpdateUserCredentials)
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", config.endpDeleteChirp)
+	mux.HandleFunc("POST /api/polka/webhooks", config.endpUpgradeUserPlan)
 
 	server := &http.Server{
 		Addr:		":" + port,
