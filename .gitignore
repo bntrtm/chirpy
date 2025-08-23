@@ -1,7 +1,6 @@
 ./buildrun
 /.bak
 /assets
-/sql
 chirpy
 migdown
 migup
