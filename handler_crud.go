@@ -150,7 +150,6 @@ func(cfg *apiConfig) endpCreateUser(w http.ResponseWriter, r *http.Request){
     type parameters struct {
 		Password	string	`json:"password"`
         Email		string	`json:"email"`
-		Token		string	`json:"token"`
     }
 
     decoder := json.NewDecoder(r.Body)
@@ -161,6 +160,11 @@ func(cfg *apiConfig) endpCreateUser(w http.ResponseWriter, r *http.Request){
 		w.WriteHeader(500)
 		return
     }
+
+	if params.Email == "" || params.Password == "" {
+    respondWithError(w, http.StatusBadRequest, "Missing email or password", nil)
+    return
+	}
 
 	hashedPass, err := auth.HashPassword(params.Password)
 	if err != nil {
