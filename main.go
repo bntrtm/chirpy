@@ -29,6 +29,9 @@ func main() {
 	config := apiConfig{}
 	dbQueries := database.New(db)
 	config.db = dbQueries
+	apiKeys := make(map[string]string)
+	config.apiKeys = &apiKeys
+	(*config.apiKeys)["polka"] = os.Getenv("POLKA_KEY")
 	config.platform = os.Getenv("PLATFORM")
 	config.secret = os.Getenv("SECRET")
 

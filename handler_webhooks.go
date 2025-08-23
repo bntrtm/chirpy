@@ -6,10 +6,25 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/bntrtm/chirpy/internal/auth"
 	"github.com/bntrtm/chirpy/internal/database"
 )
 
 func(cfg *apiConfig) endpUpgradeUserPlan(w http.ResponseWriter, r *http.Request) {
+	
+	apiKey, ok := (*cfg.apiKeys)["polka"]
+	if !ok {
+		respondWithError(w, http.StatusInternalServerError, "Internal server error", nil)
+		return
+	}
+	headerKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error(), err)
+	}
+	if apiKey != headerKey {
+		respondWithText(w, http.StatusUnauthorized, "401 Unauthorized")
+		return
+	}
 	type parameters struct {
 		Event	string `json:"event"`
 		Data	struct {
@@ -19,7 +34,7 @@ func(cfg *apiConfig) endpUpgradeUserPlan(w http.ResponseWriter, r *http.Request)
 
 	decoder := json.NewDecoder(r.Body)
     params := parameters{}
-    err := decoder.Decode(&params)
+    err = decoder.Decode(&params)
     if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error(), err)
 		return
@@ -41,7 +56,7 @@ func(cfg *apiConfig) endpUpgradeUserPlan(w http.ResponseWriter, r *http.Request)
 			respondWithError(w, http.StatusNotFound, err.Error(), err)
 			return
 		}
-		
+
 		respondWithText(w, http.StatusNoContent, "User upgraded to Chirpy Red plan!")
 		return
 	}
