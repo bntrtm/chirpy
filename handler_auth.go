@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+	"fmt"
 
 	"github.com/bntrtm/chirpy/internal/auth"
+	"github.com/bntrtm/chirpy/internal/database"
 )
 
 func(cfg *apiConfig) endpLoginUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password			string	`json:"password"`
 		Email				string	`json:"email`
-		ExpiresInSeconds	int		`json: expires_in_seconds`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -35,14 +36,21 @@ func(cfg *apiConfig) endpLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var expirationTime time.Duration
-	if params.ExpiresInSeconds > 0 && params.ExpiresInSeconds <= 3600 {
-		expirationTime = time.Second * time.Duration(params.ExpiresInSeconds)
-	} else {
-		expirationTime = time.Hour * 1
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Trouble logging in", err)
+		return
+	}
+	_, err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		Token:	refreshToken,
+		UserID:	dbUser.ID,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Trouble logging in", err)
+		return
 	}
 
-	token, err := auth.MakeJWT(dbUser.ID, cfg.secret, expirationTime)
+	accessToken, err := auth.MakeJWT(dbUser.ID, cfg.secret, time.Hour)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Trouble logging in", err)
 		return
@@ -53,9 +61,71 @@ func(cfg *apiConfig) endpLoginUser(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: 		dbUser.CreatedAt,
 		UpdatedAt: 		dbUser.UpdatedAt,
 		Email:     		dbUser.Email,
-		Token:			token,
+		Token:			accessToken,
+		RefreshToken:	refreshToken,
 	}
 
 	respondWithJSON(w, http.StatusOK, respBody)
+	return
+}
+
+func(cfg *apiConfig) endpCheckRefreshToken(w http.ResponseWriter, r *http.Request) {
+	type returnVals struct {
+		NewAccessToken string `json:"token"`
+	}
+	
+	rTokenString, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	dbRefreshToken, err := cfg.db.GetRefreshToken(r.Context(), rTokenString)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error(), err)
+		return
+	} else if dbRefreshToken.ExpiresAt.Before(time.Now()) || dbRefreshToken.RevokedAt.Valid == true {
+		respondWithError(w, http.StatusUnauthorized, "Invalid or missing token", nil)
+		return
+	}
+
+	dbUser, err := cfg.db.GetUserByRefreshToken(r.Context(), rTokenString)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid or missing token", err)
+		return
+	}
+
+	newJWTToken, err := auth.MakeJWT(dbUser.ID, cfg.secret, time.Hour)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
+
+	respBody := returnVals{
+		NewAccessToken: newJWTToken,
+	}
+
+	respondWithJSON(w, http.StatusOK, respBody)
+	return
+}
+
+func(cfg *apiConfig) endpRevokeRefreshToken(w http.ResponseWriter, r *http.Request) {
+	
+	rTokenString, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	dbUser, err := cfg.db.GetUserByRefreshToken(r.Context(), rTokenString)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid or missing token", err)
+		return
+	}
+	
+	cfg.db.RevokeUserRefreshToken(r.Context(), dbUser.ID)
+
+	respMsg := fmt.Sprintf("Revoked refresh token for user: %s", dbUser.Email)
+	respondWithText(w, http.StatusNoContent, respMsg)
 	return
 }

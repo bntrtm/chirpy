@@ -5,7 +5,10 @@ import (
 	"log"
 	"errors"
 	"strings"
+
 	"net/http"
+	"crypto/rand"
+	"encoding/hex"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -79,4 +82,15 @@ func GetBearerToken(headers http.Header) (tokenString string, returnErr error) {
 		return "", errors.New("Bearer presented without token")
 	}
 	return tokenElements[1], nil
+}
+
+func MakeRefreshToken() (string, error) {
+	rBytes := make([]byte, 32)
+	_, err := rand.Read(rBytes)
+	if err != nil {
+		return "", err
+	}
+	hexString := hex.EncodeToString(rBytes)
+	
+	return hexString, nil
 }
